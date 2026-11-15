@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>College Bus Route Optimization — Algorithm Laboratory</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <b class="logo">🚌 BUS·LAB</b>
+  <div class="links hide-pres"><a href="#problem">Problem</a><a href="#builder">Input</a><a href="#lab">Laboratory</a><a href="#compare">Compare</a><a href="#complexity">Complexity</a><a href="#learn">Learn</a><a href="#code">Code</a></div>
+  <div class="navbtns"><button id="presBtn" class="btn sm">🎤 PRESENTATION MODE</button><button id="resetBtn" class="btn sm warn">↻ RESET SIMULATION</button></div>
+</nav>
+
+<header class="hero hide-pres" id="hero">
+  <canvas id="heroCanvas" aria-label="Animated 3D bus network"></canvas>
+  <div class="hero-txt">
+    <p class="eyebrow">DESIGN &amp; ANALYSIS OF ALGORITHMS · INTERACTIVE LABORATORY</p>
+    <h1>COLLEGE BUS ROUTE OPTIMIZATION</h1>
+    <p class="sub">Designing smarter transportation routes using Design and Analysis of Algorithms</p>
+    <div class="row"><button class="btn pri" id="heroStart">START SIMULATION</button><button class="btn" id="heroExplore">EXPLORE ALGORITHMS</button><button class="btn" id="heroOpen">OPEN 3D ROUTE</button></div>
+  </div>
+</header>
+
+<main>
+<section id="problem" class="sec">
+  <h2><span>01</span> The Problem</h2>
+  <p class="lead">A college bus must start at the college, visit every required pickup location, collect students without exceeding capacity, minimise total travel distance, and return to the college. Choosing the visiting order is a <b>Travelling Salesman Problem (TSP)</b> with a capacity feasibility constraint — with n pickups there are n! possible orders, so the choice of algorithm matters.</p>
+  <div class="flow"><div>COLLEGE</div><i>↓</i><div>PICKUP LOCATIONS</div><i>↓</i><div>STUDENT COLLECTION</div><i>↓</i><div>ROUTE OPTIMIZATION</div><i>↓</i><div>COLLEGE</div></div>
+  <div class="cards hide-pres" aria-label="Real-world applications">
+    <div class="card">🎓<b>College transportation</b></div><div class="card">🏫<b>School buses</b></div><div class="card">💼<b>Employee transportation</b></div><div class="card">🚐<b>Campus shuttles</b></div>
+    <div class="card">📦<b>Delivery routing</b></div><div class="card">🏭<b>Logistics</b></div><div class="card">🚇<b>Public transportation</b></div><div class="card">🚛<b>Fleet optimization</b></div>
+  </div>
+</section>
+
+<section id="dash" class="sec">
+  <div class="stats">
+    <div><small>LOCATIONS</small><b id="hLoc">0</b></div><div><small>STUDENTS</small><b id="hStu">0</b></div><div><small>BUS CAPACITY</small><b id="hCap">0</b></div>
+    <div><small>BEST DISTANCE</small><b id="hDist">—</b></div><div><small>BEST ALGORITHM</small><b id="hBest">—</b></div><div><small>ALGORITHMS COMPLETED</small><b id="hDone">0 / 4</b></div>
+  </div>
+</section>
+
+<section id="builder" class="sec">
+  <h2><span>02</span> Data Builder</h2>
+  <div class="grid2">
+    <div class="glass">
+      <h3>Depot &amp; Bus</h3>
+      <div class="row"><label>Depot name<input id="depotName"></label><label>Bus capacity<input id="capInput" type="number" min="1"></label><label>Avg speed (km/h)<input id="speedInput" type="number" min="1"></label></div>
+      <div id="capBox" class="capbox"></div>
+      <h3>Pickup locations</h3>
+      <div id="locList" class="loclist"></div>
+      <div class="row addrow"><label>Name<input id="newName" placeholder="e.g. Adyar"></label><label>Students<input id="newStu" type="number" min="0" value="4"></label><button id="addBtn" class="btn pri">+ ADD LOCATION</button></div>
+      <p class="note">New distances start empty — fill them in the matrix or use auto-fill (random 5–25 km, symmetric).</p>
+      <button id="fillBtn" class="btn sm">Auto-fill missing distances</button>
+      <div id="valMsgs" class="msgs" role="status" aria-live="polite"></div>
+    </div>
+    <div class="glass"><h3>Distance matrix (km) <small>— edits are mirrored to keep it symmetric</small></h3><div class="scroll"><table id="matrix" class="matrix"></table></div></div>
+  </div>
+</section>
+
+<section id="lab" class="sec">
+  <h2><span>03</span> 3D Algorithm Laboratory</h2>
+  <div class="tabs" id="algTabs" role="tablist"></div>
+  <div class="controls">
+    <button id="btnStart" class="btn pri">▶ START</button><button id="btnPause" class="btn">⏸ PAUSE</button><button id="btnNext" class="btn">⏭ NEXT STEP</button><button id="btnRestart" class="btn">↻ RESTART</button><button id="btnStop" class="btn">■ STOP</button>
+    <label class="inl">Speed <select id="speedSel"><option value="slow">SLOW</option><option value="normal" selected>NORMAL</option><option value="fast">FAST</option></select></label>
+    <button id="runAll" class="btn big">🚀 RUN ALL ALGORITHMS</button>
+  </div>
+  <div id="progress" class="progress" hidden><i></i><span></span></div>
+  <div id="labMsg" class="msgs" role="alert"></div>
+  <div class="labgrid">
+    <div class="stage">
+      <canvas id="labCanvas" tabindex="0" aria-label="3D route scene. Drag to rotate, shift-drag to pan, wheel or +/- to zoom, arrow keys rotate."></canvas>
+      <div class="zoom"><button class="btn sm" id="zIn" aria-label="Zoom in">+</button><button class="btn sm" id="zOut" aria-label="Zoom out">−</button><button class="btn sm" id="zRes" aria-label="Reset view">⟲</button></div>
+      <div class="legend">■ Depot · ○ Unvisited · ◉ Current · ✓ Visited · ━ Best route · ┅ Candidate · △ Invalid. Node height = students. #n = visit order of the candidate; faint lines = recently tried routes.</div>
+    </div>
+    <div class="side">
+      <div class="glass"><h3>🚌 Bus status</h3><div id="tele" class="tele"></div></div>
+      <div class="glass"><h3>Algorithm state</h3><div id="statePanel"></div></div>
+      <div class="glass"><h3>Node inspector</h3><div id="nodeInfo" class="note">Click a node in the 3D scene.</div></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="glass"><h3>Algorithm execution</h3><div id="log" class="log" aria-live="off"></div></div>
+    <div class="glass"><h3>Route result</h3><div id="result" class="note">Run an algorithm to see its result card.</div></div>
+  </div>
+</section>
+
+<section id="compare" class="sec">
+  <h2><span>04</span> Algorithm Comparison</h2>
+  <div class="glass scroll"><table id="cmpTable" class="cmp"></table></div>
+  <p class="note">Execution time is measured with <code>performance.now()</code> around a headless run of each algorithm in this browser; it varies with hardware, browser and load. Search states are algorithm-specific counts (routes, distance evaluations, DP states, route evaluations).</p>
+  <div id="race" class="race"></div>
+  <div id="bestEngine" class="glass"></div>
+</section>
+
+<section id="complexity" class="sec">
+  <h2><span>05</span> Complexity Lab</h2>
+  <div class="glass">
+    <label class="inl">Pickup locations n = <b id="cxNval">6</b> <input id="cxN" type="range" min="1" max="20" value="6"></label>
+    <canvas id="cxCanvas" aria-label="Growth of theoretical operation counts (log scale)"></canvas>
+    <div class="scroll"><table id="cxTable" class="cmp"></table></div>
+    <p class="note">Theoretical counts are asymptotic models (log₁₀ scale), not measured times. Measured values from your latest runs are shown in the Comparison section.</p>
+  </div>
+</section>
+
+<section id="learn" class="sec hide-pres">
+  <h2><span>06</span> Learn the Algorithms</h2><div id="edu"></div>
+</section>
+
+<section id="code" class="sec hide-pres">
+  <h2><span>07</span> How the Program Works</h2>
+  <div class="flow h"><div>Input</div><i>→</i><div>Validation</div><i>→</i><div>Distance Matrix</div><i>→</i><div>Algorithm Engine</div><i>→</i><div>Execution State Stream</div><i>→</i><div>3D Visualization</div><i>→</i><div>Comparison</div><i>→</i><div>Result</div></div>
+  <p class="lead">Algorithms are JavaScript <b>generators</b>: each <code>yield</code> emits a state object (<code>candidate</code>, <code>select</code>, <code>dp-state</code>, <code>divide</code> …). The visualizer only consumes that stream, so execution = visualization. The code below is read live from the running implementation via <code>Function.toString()</code>.</p>
+  <div id="codeList"></div>
+</section>
+
+<section id="conclusion" class="sec">
+  <h2><span>08</span> Final Conclusion</h2>
+  <div id="concl" class="glass"></div>
+</section>
+</main>
+<footer class="foot">College Bus Route Optimization · DAA Project · runs fully offline</footer>
+<script src="script.js"></script>
+</body>
+</html>
